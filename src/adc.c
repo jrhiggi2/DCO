@@ -9,7 +9,10 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 
-int adc_init() {
+int DCO1_adc_init() 
+{
+    return 0;
+    /*
     stdio_init_all();
     printf("ADC Example, measuring GPIO26\n");
 
@@ -27,4 +30,5 @@ int adc_init() {
         printf("Raw value: 0x%03x, voltage: %f V\n", result, result * conversion_factor);
         sleep_ms(500);
     }
+        */
 }

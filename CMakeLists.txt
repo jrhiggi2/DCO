@@ -35,7 +35,15 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(DCO1 DCO1.c )
+add_executable(DCO1 
+        src/main.c
+        src/adc.c
+        src/dma.c
+        src/gpio.c
+        src/pio.c
+        src/pwm.c
+        src/uart.c
+)
 
 pico_set_program_name(DCO1 "DCO1")
 pico_set_program_version(DCO1 "0.1")
@@ -60,6 +68,9 @@ target_include_directories(DCO1 PRIVATE
 target_link_libraries(DCO1 
         hardware_dma
         hardware_pio
+        hardware_adc
+        hardware_pwm
+        hardware_uart
         )
 
 pico_add_extra_outputs(DCO1)
