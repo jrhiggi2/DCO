@@ -2,29 +2,32 @@
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 #include "hardware/irq.h"
+#include "include/uart.h"
 
 // UART defines
 // By default the stdout UART is `uart0`, so we will use the second one
-
-#define UART_ID uart1
-#define BAUD_RATE 31250
-
-// Use pins 4 and 5 for UART1
+// Use pins GPIO4 and GPIO5 for UART1
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
 //#define UART_TX_PIN 4
 #define UART_RX_PIN 5
+#define UART_ID uart1
+#define BAUD_RATE 31250
 
-//static int chars_rxed = 0;
-
-typedef struct {
-    uint8_t status;
-    uint8_t data1;
-    uint8_t data2;
-} midiEvent;
-
-//uint8_t midi[3];
-
+// define struct for a 3 byte midi message
+//typedef struct {
+//    uint8_t status;
+//    uint8_t data1;
+//    uint8_t data2;
+//} midiEvent;
 midiEvent midi;
+
+//typedef void (*rx_callback_t)(midiEvent);
+static rx_callback_t rx_callback = 0;
+
+void DCO1_uart_rx_callback(rx_callback_t cb)
+{
+    rx_callback = cb;
+}
 
 // RX interrupt handler
 void uart1_irq_handler()
@@ -67,12 +70,16 @@ void uart1_irq_handler()
 
         printf("Status: %02X, Data1: %02X, Data2: %02X\n", midi.status, midi.data1, midi.data2);
 
+        if (rx_callback)
+        {
+            rx_callback(midi); // call the callback function with the note value (data byte 1)
+        }
     }
     return;
 }
 
 
-int DCO1_uart_init()
+void DCO1_uart_init()
 {
     // Set up our UART
     uart_init(UART_ID, BAUD_RATE);

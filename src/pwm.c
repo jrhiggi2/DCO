@@ -9,10 +9,9 @@
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 
-int DCO1_pwm_init()
+void DCO1_pwm_init()
 {
-    return 0;
-    /*
+    
     /// \tag::setup_pwm[]
 
     // Tell GPIO 0 and 1 they are allocated to the PWM
@@ -34,5 +33,9 @@ int DCO1_pwm_init()
 
     // Note we could also use pwm_set_gpio_level(gpio, x) which looks up the
     // correct slice and channel for a given GPIO.
-    */
+}
+
+void pwm_update()
+{
+
 }
