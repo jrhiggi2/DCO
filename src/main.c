@@ -18,6 +18,7 @@ void main()
     //state machine for UART MIDI
     DCO1_uart_rx_callback(note_update); // set note update function as the callback function for when a MIDI message is received over UART
     DCO1_uart_init();
+    DCO1_pwm_init();
     stdio_init_all(); // Initialize USB serial port
     sleep_ms(1000);
     printf("Hello from Pico! MIDI test\n");

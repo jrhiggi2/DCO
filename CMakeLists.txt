@@ -43,6 +43,7 @@ add_executable(DCO1
         src/pio.c
         src/pwm.c
         src/uart.c
+        src/timer.c
 )
 
 pico_set_program_name(DCO1 "DCO1")
@@ -71,6 +72,7 @@ target_link_libraries(DCO1
         hardware_adc
         hardware_pwm
         hardware_uart
+        hardware_timer
         )
 
 pico_add_extra_outputs(DCO1)
