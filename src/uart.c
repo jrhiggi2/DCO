@@ -68,7 +68,7 @@ void uart1_irq_handler()
         else
             midi.status = 0; // parsing can check if midi status is 0 to know if the received byte was invalid and should be ignored
 
-        printf("Status: %02X, Data1: %02X, Data2: %02X\n", midi.status, midi.data1, midi.data2);
+        //printf("Status: %02X, Data1: %02X, Data2: %02X\n", midi.status, midi.data1, midi.data2);
 
         if (rx_callback)
         {

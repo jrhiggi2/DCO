@@ -11,6 +11,9 @@ typedef struct {
     uint8_t data2;
 } midiEvent;
 
+
+
+
 // function pointer type called "rx_callback_t" that points to a function that takes a struct as an arguement and returns void
 typedef void (*rx_callback_t)(midiEvent midi);
 

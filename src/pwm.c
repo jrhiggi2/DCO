@@ -9,11 +9,13 @@
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "include/pwm.h"
+#include "include/uart.h"
 #include <math.h>
 
 static uint slice_cv;
 static uint slice_freq1;
 static uint slice_freq2;
+static uint slice_adsr;
 
 typedef struct {
     uint16_t wrap;
@@ -153,35 +155,84 @@ const note_params_t note_table[128] = {
 };
 
 //global uint slice_num0;
+//static uint8_t voice[2] = {0};
+static voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
 
-void pwm_update(uint8_t note_value)
+void pwm_update(bool note_on, uint8_t note_value, uint8_t note_velocity)
 {
-    // Map MIDI note value (0-127) to PWM duty cycle (0-1023)
-    // lowest note is C0: 16.35 Hz
-    // Vmax = 1.65V duty = V(f(midi_note))/3.3V, f=16.35*2^(note_value/12)
-    //float duty = 0.5f * (1.0f - ((16.35f / 5000.0f) * powf(2.0f, (float)note_value / 12.0f))) * 1023.0f;
-    //float duty = 0.5f * (1.0f - ((16.35f / 5000.0f) * powf(2.0f, (float)note_value / 12.0f))) * 1023.0f;
-    
     // Update control voltages (GP0 and GP1)
     
-    //pwm_set_chan_level(slice_cv, PWM_CHAN_A, (uint16_t)duty);
-    //pwm_set_chan_level(slice_cv, PWM_CHAN_B, (uint16_t)duty);
-    // evenutally add duophonic mode ^^^^ may need note buffer (just needs to be 2 elements long)
-    pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
+    // if note on
+    if(note_on) // if 0x90, note on message check by masking with 0x10 
+    {
+    // if voice 0 is off, use voice 0
+        if(voice[0].voice_on == false)
+        {
+            voice[0].voice_on = true;
+            voice[0].voice_note = note_value;
+            pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);
+            pwm_set_clkdiv(slice_freq1, note_table[note_value].clkdiv);
+            pwm_set_wrap(slice_freq1, note_table[note_value].wrap);
+
+            //voice[1].voice_on = true;
+            //voice[1].voice_note = note_value;
+            pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
+            pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
+            pwm_set_wrap(slice_freq2, note_table[note_value].wrap);
+        // we know min cv value for note from table (note_table[note_value].cv), 529 is max (which is lowest gain) 
+        }
+        //else if (voice[1].voice_on == false) // maybe implement note priority in the future
+        else // if voice 0 is on, use or steal voice 1 (first note priority)
+        {
+            voice[1].voice_on = true;
+            voice[1].voice_note = note_value;
+            pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
+            pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
+            pwm_set_wrap(slice_freq2, note_table[note_value].wrap);
+        }
+
+    }
+    else // note off
+    {
+        // if voice 0 is on and the note value matches
+        if(voice[0].voice_on == true && voice[0].voice_note == note_value)
+        {
+            // check if voice 1 is on and move voice 0 to note of voice 1, else turn off voice 0
+            if(voice[1].voice_on == true)
+            {
+                voice[1].voice_on = false; // now that voice0 = voice1, can call voice1 off.
+                voice[0].voice_note = voice[1].voice_note;
+                
+                pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[voice[0].voice_note].cv);
+                pwm_set_clkdiv(slice_freq1, note_table[voice[0].voice_note].clkdiv);
+                pwm_set_wrap(slice_freq1, note_table[voice[0].voice_note].wrap);
+            }
+            else 
+            {
+                voice[0].voice_on = false;
+            }
+        }
+        // else if voice 1 is on and the note value matches, turn off voice 1 and move voice[1] to voice[0] note
+        else if(voice[1].voice_on == true && voice[1].voice_note == note_value)
+        {
+            voice[1].voice_on = false;
+            voice[1].voice_note = voice[0].voice_note;
+
+            pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[voice[1].voice_note].cv);
+            pwm_set_clkdiv(slice_freq2, note_table[voice[1].voice_note].clkdiv);
+            pwm_set_wrap(slice_freq2, note_table[voice[1].voice_note].wrap);
+
+        }
+    }
+    //pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
+    // Update frequencies (GP2 and GP6)
     
-    // Update frequencies (GP2 and GP6), ** gets innaccurate at A = 880Hz (becomes 893Hz) and above
-    // need to use both clk div and wrap
-    //float freq = 16.35160f * powf(2.0f, (float)note_value / 12.0f);
-    //float freq = 440.0f * powf(2.0f, ((float)note_value - 69) / 12.0f);
-    //pwm_set_clkdiv(slice_freq1, 150000000.0f / (freq * 65536.0f));
-    //pwm_set_clkdiv(slice_freq2, 150000000.0f / (freq * 65536.0f));
-    pwm_set_clkdiv(slice_freq1, note_table[note_value].clkdiv);
-    pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
-    pwm_set_wrap(slice_freq1, note_table[note_value].wrap);
-    pwm_set_wrap(slice_freq2, note_table[note_value].wrap);
-    // set pulse width to as small as possible to discharge capacitor through the transistor only as long as needed
-    //pwm_set_chan_level(slice_freq1, PWM_CHAN_A, 65535 - 200);
-    //pwm_set_chan_level(slice_freq2, PWM_CHAN_A, 65535 - 200);
+}
+
+void adsr_pwm_update(uint16_t wrap_value)
+{
+  // adsr value updates PWM level here
+    pwm_set_chan_level(slice_adsr, PWM_CHAN_A, wrap_value);
 }
 
 void DCO1_pwm_init()
@@ -197,18 +248,21 @@ void DCO1_pwm_init()
     gpio_set_function(2, GPIO_FUNC_PWM);
     gpio_set_function(6, GPIO_FUNC_PWM);
 
+    // set GP8 and 9 for ADSR
+    gpio_set_function(8, GPIO_FUNC_PWM);
+    gpio_set_function(9, GPIO_FUNC_PWM);
+
     // Allocate PWM slices
-    //uint slice_num0 = pwm_gpio_to_slice_num(0);
-    //uint slice_num1 = pwm_gpio_to_slice_num(2); 
-    //uint slice_num3 = pwm_gpio_to_slice_num(6); 
     slice_cv = pwm_gpio_to_slice_num(0);
     slice_freq1 = pwm_gpio_to_slice_num(2); 
     slice_freq2 = pwm_gpio_to_slice_num(6); 
+    slice_adsr = pwm_gpio_to_slice_num(8);
 
     // DCO CV default config
 
     // 150MHz clock, wrap = 1023 gives 146.484375kHz PWM frequency 3.3V/1024 = 3.22mV steps
     pwm_set_wrap(slice_cv, 1023);
+    pwm_set_wrap(slice_adsr, 1023);
 
     // Set channel A to gain for 440Hz -> 1.65 - Vout(f) = 1.65*(1/5000)*f = 1.5048V
     // duty cycle = Vout(f)/3.3 = 1.5048/3.3 = 0.456 duty cycle = floor(0.456*1023) = 466
@@ -234,7 +288,7 @@ void DCO1_pwm_init()
     //pwm_set_enabled(slice_freq1, true);
     //pwm_set_enabled(slice_freq2, true);
 
-    pwm_set_mask_enabled(0x7); // enable all channels on slice 0, 1, and 3
+    pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2) | (1 << slice_adsr)); // enable all channels on slice 0, 1, and 3
     // could also have done pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2)); to only enable those slices
     // this saying bitshift 1 << 1 or 1 << 2 or 1 << 3. Which gives b0001 | b0010 | b0100  = 0b0111
     /// \end::setup_pwm[]
