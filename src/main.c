@@ -5,24 +5,46 @@
 #include "include/adsr.h"
 
 adsr_t env;
+voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
+note_buffer_t note_buffer = {0}; // initialize note buffer count to 0 and note values to 0
 
 void note_update(midiEvent midi)
 {
     // if note on message, set PWM duty cycle based on note value
-    if ((midi.status & 0xF0) == 0x90)
+    if ((midi.status & 0xF0) == 0x90)  // note on
     {
-        pwm_update(1, midi.data1, midi.data2); // Update PWM duty cycle based on note value and velocity
-        // trigger ADSR -- eventually implement legato 
+        // add note to buffer
+        note_buffer.note_value[note_buffer.count] = midi.data1;
+        note_buffer.count++;
+
+
+        pwm_update(midi.data1, midi.data2); // Update PWM duty cycle based on note value and velocity
+        // trigger ADSR -- eventually implement legato
         adsr_note_on(&env);
 
     }
-    else if ((midi.status & 0xF0) == 0x80) 
+    else if ((midi.status & 0xF0) == 0x80) // note off
     {
-        pwm_update(0, midi.data1, midi.data2); //  update note information
-        // trigger ADSR -- eventually implement legato 
-        adsr_note_off(&env);
-        
-
+        // remove note from buffer
+        for (uint8_t i = 0; i < note_buffer.count; i++)
+        {
+            if (note_buffer.note_value[i] == midi.data1)
+            {
+                // shift remaining notes down in buffer
+                for (uint8_t j = i; j < note_buffer.count - 1; j++)
+                {
+                    note_buffer.note_value[j] = note_buffer.note_value[j + 1];
+                }
+                note_buffer.count--;
+                break;
+            }
+        }
+        // if no more notes in buffer, set envelope to release 
+        if (note_buffer.count == 0)
+        {
+            // trigger ADSR -- eventually implement legato 
+            adsr_note_off(&env);
+        }
     }
 }
 

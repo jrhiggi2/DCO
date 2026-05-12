@@ -156,33 +156,33 @@ const note_params_t note_table[128] = {
 
 //global uint slice_num0;
 //static uint8_t voice[2] = {0};
-static voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
+//static voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
 
-// detuning
+
+// detuning default value and ratio init
 float detune_cents = 20.0f;
 float detune_ratio;
 
 
-void pwm_update(bool note_on, uint8_t note_value, uint8_t note_velocity)
+void pwm_update(uint8_t note_value, uint8_t note_velocity)
 {
-    // super basic monophonic mode for now
+    // basic monophonic mode for now
+    // need to decide on key priority for monophonic mode - last key
+    // have a bug with this code when holding two notes and releasing the first one, the second note turns off,
+    // need to implement some sort of note stack to keep track of held notes and only turn off when all notes released
+    // last key priority
+        
+    detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
+    uint16_t wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
 
-    if(note_on) // if 0x90, note on message check by masking with 0x10 
-    {
+    pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
+    //pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);
+    pwm_set_clkdiv(slice_freq1, note_table[note_value].clkdiv);
+    pwm_set_wrap(slice_freq1, note_table[note_value].wrap);
 
-            detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
-            uint16_t wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
-
-            pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
-            //pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);
-            pwm_set_clkdiv(slice_freq1, note_table[note_value].clkdiv);
-            pwm_set_wrap(slice_freq1, note_table[note_value].wrap);
-
-            //pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
-            pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
-            pwm_set_wrap(slice_freq2, wrap_detuned);
-        // we know min cv value for note from table (note_table[note_value].cv), 529 is max (which is lowest gain) 
-    } 
+    //pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
+    pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
+    pwm_set_wrap(slice_freq2, wrap_detuned);
 }
 
 void adsr_pwm_update(uint16_t wrap_value)
