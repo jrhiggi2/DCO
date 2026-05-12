@@ -158,75 +158,31 @@ const note_params_t note_table[128] = {
 //static uint8_t voice[2] = {0};
 static voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
 
+// detuning
+float detune_cents = 20.0f;
+float detune_ratio;
+
+
 void pwm_update(bool note_on, uint8_t note_value, uint8_t note_velocity)
 {
-    // Update control voltages (GP0 and GP1)
-    
-    // if note on
+    // super basic monophonic mode for now
+
     if(note_on) // if 0x90, note on message check by masking with 0x10 
     {
-    // if voice 0 is off, use voice 0
-        if(voice[0].voice_on == false)
-        {
-            voice[0].voice_on = true;
-            voice[0].voice_note = note_value;
-            pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);
+
+            detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
+            uint16_t wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
+
+            pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
+            //pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);
             pwm_set_clkdiv(slice_freq1, note_table[note_value].clkdiv);
             pwm_set_wrap(slice_freq1, note_table[note_value].wrap);
 
-            //voice[1].voice_on = true;
-            //voice[1].voice_note = note_value;
-            pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
+            //pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
             pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
-            pwm_set_wrap(slice_freq2, note_table[note_value].wrap);
+            pwm_set_wrap(slice_freq2, wrap_detuned);
         // we know min cv value for note from table (note_table[note_value].cv), 529 is max (which is lowest gain) 
-        }
-        //else if (voice[1].voice_on == false) // maybe implement note priority in the future
-        else // if voice 0 is on, use or steal voice 1 (first note priority)
-        {
-            voice[1].voice_on = true;
-            voice[1].voice_note = note_value;
-            pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
-            pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
-            pwm_set_wrap(slice_freq2, note_table[note_value].wrap);
-        }
-
-    }
-    else // note off
-    {
-        // if voice 0 is on and the note value matches
-        if(voice[0].voice_on == true && voice[0].voice_note == note_value)
-        {
-            // check if voice 1 is on and move voice 0 to note of voice 1, else turn off voice 0
-            if(voice[1].voice_on == true)
-            {
-                voice[1].voice_on = false; // now that voice0 = voice1, can call voice1 off.
-                voice[0].voice_note = voice[1].voice_note;
-                
-                pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[voice[0].voice_note].cv);
-                pwm_set_clkdiv(slice_freq1, note_table[voice[0].voice_note].clkdiv);
-                pwm_set_wrap(slice_freq1, note_table[voice[0].voice_note].wrap);
-            }
-            else 
-            {
-                voice[0].voice_on = false;
-            }
-        }
-        // else if voice 1 is on and the note value matches, turn off voice 1 and move voice[1] to voice[0] note
-        else if(voice[1].voice_on == true && voice[1].voice_note == note_value)
-        {
-            voice[1].voice_on = false;
-            voice[1].voice_note = voice[0].voice_note;
-
-            pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[voice[1].voice_note].cv);
-            pwm_set_clkdiv(slice_freq2, note_table[voice[1].voice_note].clkdiv);
-            pwm_set_wrap(slice_freq2, note_table[voice[1].voice_note].wrap);
-
-        }
-    }
-    //pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
-    // Update frequencies (GP2 and GP6)
-    
+    } 
 }
 
 void adsr_pwm_update(uint16_t wrap_value)
