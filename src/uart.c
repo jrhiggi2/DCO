@@ -26,7 +26,7 @@ static rx_callback_t rx_callback = 0;
 
 void DCO1_uart_rx_callback(rx_callback_t cb)
 {
-    rx_callback = cb;
+    rx_callback = cb; // cb is function pointer to midi_update
 }
 
 // RX interrupt handler
@@ -72,7 +72,7 @@ void uart1_irq_handler()
 
         if (rx_callback)
         {
-            rx_callback(midi); // call the callback function with the note value (data byte 1)
+            rx_callback(midi); // call the callback function and pass in midi data struct
         }
     }
     return;

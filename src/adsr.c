@@ -32,7 +32,7 @@ void adsr_update(adsr_t *env)
     {
         case ADSR_ATTACK:
             env->value += (1.0f - env->value) * env->attack_coeff;
-            if(env->value > 0.999f)
+            if(env->value > 0.85f)
                 env->state = ADSR_DECAY;
             break;
 

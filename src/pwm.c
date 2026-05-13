@@ -158,13 +158,22 @@ const note_params_t note_table[128] = {
 //static uint8_t voice[2] = {0};
 //static voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
 
+float detune_cents = 0.0f;
+float detune_ratio = 1.0f;
+uint16_t wrap_detuned;
 
 // detuning default value and ratio init
-float detune_cents = 20.0f;
-float detune_ratio;
+void detune_update(uint8_t detune_val, uint8_t note_value)
+{
+    // detune needs to be updated from 0-127 value to an octave in cents so -700 to +700 cents, with 64 being 0 cents, 0 being -700 cents, and 127 being +700 cents
+    detune_cents = ((float)detune_val - 64.0f) * (700.0f / 63.0f); // convert detune value to cents
+    detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
+    wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
+    pwm_set_wrap(slice_freq2, wrap_detuned);
+}
 
 
-void pwm_update(uint8_t note_value, uint8_t note_velocity)
+void pwm_update(uint8_t note_value)
 {
     // basic monophonic mode for now
     // need to decide on key priority for monophonic mode - last key
@@ -172,8 +181,8 @@ void pwm_update(uint8_t note_value, uint8_t note_velocity)
     // need to implement some sort of note stack to keep track of held notes and only turn off when all notes released
     // last key priority
         
-    detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
-    uint16_t wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
+    //detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
+    wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
 
     pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
     //pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);

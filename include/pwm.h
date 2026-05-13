@@ -17,10 +17,9 @@ typedef struct {
     uint8_t count;
 } note_buffer_t;
 
-
-
 void DCO1_pwm_init();
-void pwm_update(uint8_t note_value, uint8_t note_velocity);
+void pwm_update(uint8_t note_value);
 void adsr_pwm_update(uint16_t wrap_value);
+void detune_update(uint8_t detune_val, uint8_t note);
 
 #endif
