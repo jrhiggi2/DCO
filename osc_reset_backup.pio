@@ -1,0 +1,41 @@
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+
+; Side-set pin 0 is used for the reset pulse output
+.pio_version 0
+
+.program osc_reset_backup
+.side_set 1 opt
+
+    pull noblock    side 0     ; load initial period
+    mov x, osr                ; keep the current period in X
+    mov y, x                  ; use X as the countdown value
+countloop:
+    jmp y-- countloop side 0  ; count down low cycles
+    nop            side 1     ; constant reset pulse high (1st cycle)
+    nop            side 1     ; constant reset pulse high (2nd cycle)
+    jmp reset     side 0
+
+reset:
+    pull noblock    side 0     ; check for new period
+    jmp !osre, has_new         ; if pulled something (new period)
+    jmp countloop              ; else continue
+has_new:
+    mov x, osr                ; store new_period in x
+    push noblock              ; push current y to FIFO
+    pull noblock              ; wait for new_remaining
+    mov y, osr                ; y = new_remaining
+    jmp countloop
+
+% c-sdk {
+static inline void osc_reset_program_init(PIO pio, uint sm, uint offset, uint pin) {
+   pio_gpio_init(pio, pin);
+   pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+   pio_sm_config c = osc_reset_program_get_default_config(offset);
+   sm_config_set_sideset_pins(&c, pin);
+   pio_sm_init(pio, sm, offset, &c);
+}
+%}

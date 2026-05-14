@@ -3,6 +3,7 @@
 #include "include/uart.h"
 #include "include/pwm.h"
 #include "include/adsr.h"
+#include "include/pio.h"
 #include <math.h>
 
 adsr_t env;
@@ -29,8 +30,10 @@ void midi_update(midiEvent midi)
         note_buffer.note_value[note_buffer.count] = midi.data1;
         note_buffer.count++;
 
+        pio_osc_reset_set_note(pio0, 0, midi.data1); // set oscillator reset frequency based on MIDI note value
 
-        pwm_update(midi.data1); // Update PWM duty cycle based on note value and velocity
+        //pwm_update(midi.data1); // Update PWM duty cycle based on note value and velocity
+        
         // trigger ADSR -- eventually implement legato
         // pass midi.data2 into adsr note on eventually when handling velocity
         adsr_note_on(&env);
@@ -93,6 +96,13 @@ void main()
     DCO1_uart_rx_callback(midi_update); // set midi update function as the callback function for when a MIDI message is received over UART
     DCO1_uart_init();
     DCO1_pwm_init();
+
+    PIO pio = pio0;
+    uint offset = pio_add_program(pio, &osc_reset_program);
+    const uint gpio_reset = 4;
+    float reset_freq_hz = 440.0f;  // start at 1000 Hz
+    pio_osc_reset_init(pio, 0, offset, gpio_reset, reset_freq_hz);
+
     adsr_init(&env);
     stdio_init_all(); // Initialize USB serial port
     sleep_ms(1000);

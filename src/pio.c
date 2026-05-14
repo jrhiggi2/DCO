@@ -1,32 +1,52 @@
-  #include "blink.pio.h"
-/*
-void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq) {
-    blink_program_init(pio, sm, offset, pin);
-    pio_sm_set_enabled(pio, sm, true);
+/**
+ * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
-    printf("Blinking pin %d at %d Hz\n", pin, freq);
+#include <stdio.h>
+#include <math.h>
 
-    // PIO counter program takes 3 more cycles in total than we pass as
-    // input (wait for n + 1; mov; jmp)
-    pio->txf[sm] = (125000000 / (2 * freq)) - 3;
-} 
- */ 
-  
- int DCO1_pio_init() 
-   {
-    return 0;
-    /*
-        // PIO Blinking example
-        PIO pio = pio0;
-        uint offset = pio_add_program(pio, &blink_program);
-        printf("Loaded program at %d\n", offset);
+#include "pico/stdlib.h"
+#include "hardware/pio.h"
+#include "osc_reset.pio.h"
+
+#define PIO_CYCLE_LENGTH 67  // actual loop: 1 (mov) + 63 (jmp loop) + 2 (nops) + 1 (jmp back)
+#define SYSTEM_CLOCK_FREQ 150000000.0f
+
+void pio_osc_reset_init(PIO pio, uint sm, uint offset, uint pin, float initial_freq_hz) {
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+    pio_sm_config c = osc_reset_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&c, pin);
+    pio_sm_init(pio, sm, offset, &c);
+
+    pio_sm_set_enabled(pio, sm, false);
     
-        #ifdef PICO_DEFAULT_LED_PIN
-        blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 3);
-        #else
-        blink_pin_forever(pio, 0, offset, 6, 3);
-        #endif
-        // For more pio examples see https://github.com/raspberrypi/pico-examples/tree/master/pio
-    */
-    }
- 
+    // Send the fixed low-count (62) to the PIO
+    pio_sm_put_blocking(pio, sm, 62);
+    
+    // Set initial clock divider for desired frequency
+    float clkdiv = SYSTEM_CLOCK_FREQ / (initial_freq_hz * PIO_CYCLE_LENGTH);
+    pio_sm_set_clkdiv(pio, sm, (uint32_t)clkdiv);  // pass integer divider directly
+    
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+void pio_osc_reset_set_freq(PIO pio, uint sm, float freq_hz) {
+    // Compute new clock divider for the desired frequency
+    float clkdiv = SYSTEM_CLOCK_FREQ / (freq_hz * PIO_CYCLE_LENGTH);
+    pio_sm_set_clkdiv(pio, sm, (uint32_t)clkdiv);  // pass integer divider directly
+}
+
+float pio_osc_reset_note_to_freq(uint8_t note_number) {
+    // C0 = 16.3516 Hz, note_number 0 = C0, 12 = C1, etc.
+    // freq = 16.3516 * 2^(note_number / 12)
+    return 16.3516f * powf(2.0f, (float)note_number / 12.0f);
+}
+
+void pio_osc_reset_set_note(PIO pio, uint sm, uint8_t note_number) {
+    float freq = pio_osc_reset_note_to_freq(note_number);
+    pio_osc_reset_set_freq(pio, sm, freq);
+}
+

@@ -1,0 +1,31 @@
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+
+; Fixed-period clkdiv-tunable reset pulse generator
+.pio_version 0
+
+.program osc_reset
+.side_set 1 opt
+
+    pull block side 0      ; load the count (62) from FIFO at startup
+    mov x, osr             ; x = 62
+mainloop:
+    mov y, x               ; y = x (nested loop counter)
+countloop:
+    jmp y-- countloop side 0
+    nop            side 1
+    nop            side 1
+    jmp mainloop side 0
+
+% c-sdk {
+static inline void osc_reset_program_init(PIO pio, uint sm, uint offset, uint pin) {
+   pio_gpio_init(pio, pin);
+   pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+   pio_sm_config c = osc_reset_program_get_default_config(offset);
+   sm_config_set_sideset_pins(&c, pin);
+   pio_sm_init(pio, sm, offset, &c);
+}
+%}

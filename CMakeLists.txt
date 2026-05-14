@@ -51,7 +51,7 @@ pico_set_program_name(DCO1 "DCO1")
 pico_set_program_version(DCO1 "0.1")
 
 # Generate PIO header
-pico_generate_pio_header(DCO1 ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
+pico_generate_pio_header(DCO1 ${CMAKE_CURRENT_LIST_DIR}/osc_reset.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(DCO1 0)
