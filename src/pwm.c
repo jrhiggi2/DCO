@@ -166,37 +166,19 @@ uint16_t wrap_detuned;
 void detune_update(uint8_t detune_val, uint8_t note_value)
 {
     // detune needs to be updated from 0-127 value to an octave in cents so -700 to +700 cents, with 64 being 0 cents, 0 being -700 cents, and 127 being +700 cents
-    detune_cents = ((float)detune_val - 64.0f) * (2400.0f / 63.0f); // convert detune value to cents
+    detune_cents = ((float)detune_val - 64.0f) * (700.0f / 63.0f); // convert detune value to cents
     detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
     wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
-    pwm_set_wrap(slice_freq2, wrap_detuned);
+    //pwm_set_wrap(slice_freq2, wrap_detuned);
 }
 
 
 void pwm_update(uint8_t note_value)
 {
-    // basic monophonic mode for now
-    // need to decide on key priority for monophonic mode - last key
-    // have a bug with this code when holding two notes and releasing the first one, the second note turns off,
-    // need to implement some sort of note stack to keep track of held notes and only turn off when all notes released
     // last key priority
         
-    //detune_ratio = powf(2.0f, detune_cents / 1200.0f); // calculate detune ratio from cents
-    wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
+    //wrap_detuned = (uint16_t)(((float)(note_table[note_value].wrap + 1) / detune_ratio) - 1.0f);
 
-    
-    //pwm_set_chan_level(slice_cv, PWM_CHAN_A, note_table[note_value].cv);
-    //pwm_set_clkdiv(slice_freq1, note_table[note_value].clkdiv);
-    pwm_set_wrap(slice_freq1, note_table[note_value].wrap);
-
-    //pwm_set_chan_level(slice_cv, PWM_CHAN_B, note_table[note_value].cv);
-    //pwm_set_clkdiv(slice_freq2, note_table[note_value].clkdiv);
-
-    pwm_set_wrap(slice_freq2, wrap_detuned);
-    
-    //pwm_set_counter(slice_freq1, 0); 
-    //pwm_set_counter(slice_freq2, 0); 
-    sleep_ms(5);
     pwm_set_both_levels(slice_cv, note_table[note_value].cv, note_table[note_value].cv);
 }
 
@@ -216,8 +198,8 @@ void DCO1_pwm_init()
     gpio_set_function(1, GPIO_FUNC_PWM);
 
     // set GP2 (1A) and GP6 (3A) to be allocated to PWM -> DCO integrator reset trigger
-    gpio_set_function(2, GPIO_FUNC_PWM);
-    gpio_set_function(6, GPIO_FUNC_PWM);
+   // gpio_set_function(2, GPIO_FUNC_PWM);
+   // gpio_set_function(6, GPIO_FUNC_PWM);
 
     // set GP8 and 9 for ADSR
     gpio_set_function(8, GPIO_FUNC_PWM);
@@ -244,13 +226,13 @@ void DCO1_pwm_init()
     // DCO clocks default config
 
     // set slice 1 and slice 3 to 440 Hz (A4 note) such that set the DCO frequency
-    pwm_set_clkdiv(slice_freq1, note_table[69].clkdiv);
-    pwm_set_clkdiv(slice_freq2, note_table[69].clkdiv);
-    pwm_set_wrap(slice_freq1, note_table[69].wrap);
-    pwm_set_wrap(slice_freq2, note_table[69].wrap);
+    //pwm_set_clkdiv(slice_freq1, note_table[69].clkdiv);
+    //pwm_set_clkdiv(slice_freq2, note_table[69].clkdiv);
+    //pwm_set_wrap(slice_freq1, note_table[69].wrap);
+    //pwm_set_wrap(slice_freq2, note_table[69].wrap);
     // channel level now driving differentiator->npn, level not necessary to strictly set anymore, just needs to be large enough to create RC pulse
-    pwm_set_chan_level(slice_freq1, PWM_CHAN_A, 5);
-    pwm_set_chan_level(slice_freq2, PWM_CHAN_A, 5);
+    //pwm_set_chan_level(slice_freq1, PWM_CHAN_A, 5);
+    //pwm_set_chan_level(slice_freq2, PWM_CHAN_A, 5);
 
 
     // enable PWM output
@@ -259,7 +241,8 @@ void DCO1_pwm_init()
     //pwm_set_enabled(slice_freq1, true);
     //pwm_set_enabled(slice_freq2, true);
 
-    pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2) | (1 << slice_adsr)); // enable all channels on slice 0, 1, and 3
+    //pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2) | (1 << slice_adsr)); // enable all channels on slice 0, 1, and 3
+    pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_adsr)); // enable all channels on slice 0, 1, and 3
     // could also have done pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2)); to only enable those slices
     // this saying bitshift 1 << 1 or 1 << 2 or 1 << 3. Which gives b0001 | b0010 | b0100  = 0b0111
     /// \end::setup_pwm[]

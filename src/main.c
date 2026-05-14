@@ -31,6 +31,7 @@ void midi_update(midiEvent midi)
         note_buffer.count++;
 
         pio_osc_reset_set_note(pio0, 0, midi.data1); // set oscillator reset frequency based on MIDI note value
+        pio_osc_reset_set_note(pio0, 1, midi.data1); // set oscillator reset frequency based on MIDI note value
 
         //pwm_update(midi.data1); // Update PWM duty cycle based on note value and velocity
         
@@ -97,11 +98,14 @@ void main()
     DCO1_uart_init();
     DCO1_pwm_init();
 
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &osc_reset_program);
-    const uint gpio_reset = 4;
-    float reset_freq_hz = 440.0f;  // start at 1000 Hz
-    pio_osc_reset_init(pio, 0, offset, gpio_reset, reset_freq_hz);
+    //PIO pio = pio0;
+    uint offset = pio_add_program(pio0, &osc_reset_program);
+    const uint sm0_gpio = 2;
+    const uint sm1_gpio = 3;
+    const uint sm0 = 0;
+    const uint sm1 = 1;
+    pio_osc_reset_init(pio0, sm0, offset, sm0_gpio); // initialize PIO state machine 0
+    pio_osc_reset_init(pio0, sm1, offset, sm1_gpio); // initialize PIO state machine 1
 
     adsr_init(&env);
     stdio_init_all(); // Initialize USB serial port
