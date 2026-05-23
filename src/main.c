@@ -1,14 +1,17 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "include/uart.h"
 #include "include/pwm.h"
 #include "include/adsr.h"
 #include "include/pio.h"
+#include "include/display.h"
 #include <math.h>
 
 adsr_t env;
 voice_t voice[2] = {0}; // initialize voice states to false and note values to 0
 note_buffer_t note_buffer = {0}; // initialize note buffer count to 0 and note values to 0
+u8g2_t u8g2;
 
 float cc_to_coeff(uint8_t cc)
 {
@@ -97,6 +100,8 @@ void main()
     DCO1_uart_rx_callback(midi_update); // set midi update function as the callback function for when a MIDI message is received over UART
     DCO1_uart_init();
     DCO1_pwm_init();
+    //stdio_init_all(); // Initialize USB serial port for status output
+    //sleep_ms(1000);
 
     //PIO pio = pio0;
     uint offset = pio_add_program(pio0, &osc_reset_program);
@@ -110,7 +115,16 @@ void main()
     adsr_init(&env);
     stdio_init_all(); // Initialize USB serial port
     sleep_ms(1000);
-    printf("Hello from Pico! MIDI test\n");
+    printf("Hello from Pico!\n");
+
+    uint8_t display_addr = 0;
+    bool display_found = display_init(&u8g2, &display_addr);
+    if (display_found) {
+        printf("SSD1306 detected at I2C address 0x%02x\n", display_addr);
+    } else {
+        printf("SSD1306 not detected; using fallback I2C address 0x%02x\n", display_addr);
+    }
+    display_draw_hello(&u8g2);
     while(1)
     {
         sleep_us(200); // 5kHz update rate for ADSR envelope
