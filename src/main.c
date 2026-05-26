@@ -6,6 +6,7 @@
 #include "include/adsr.h"
 #include "include/pio.h"
 #include "include/display.h"
+#include "include/gfx.h"
 #include <math.h>
 
 adsr_t env;
@@ -94,16 +95,14 @@ void midi_update(midiEvent midi)
     }
 }
 
+
 void main()
 {
     //state machine for UART MIDI
     DCO1_uart_rx_callback(midi_update); // set midi update function as the callback function for when a MIDI message is received over UART
     DCO1_uart_init();
     DCO1_pwm_init();
-    //stdio_init_all(); // Initialize USB serial port for status output
-    //sleep_ms(1000);
 
-    //PIO pio = pio0;
     uint offset = pio_add_program(pio0, &osc_reset_program);
     const uint sm0_gpio = 2;
     const uint sm1_gpio = 3;
@@ -116,25 +115,36 @@ void main()
     stdio_init_all(); // Initialize USB serial port
     sleep_ms(1000);
     printf("Hello from Pico!\n");
+    display_init(&u8g2, 0x3c);
+    display_draw_hello(&u8g2, 15);
 
-    uint8_t display_addr = 0;
-    bool display_found = display_init(&u8g2, &display_addr);
-    if (display_found) {
-        printf("SSD1306 detected at I2C address 0x%02x\n", display_addr);
-    } else {
-        printf("SSD1306 not detected; using fallback I2C address 0x%02x\n", display_addr);
-    }
-    display_draw_hello(&u8g2);
+    gfx_set_scene(SCENE_RORSCHACH);
+
+    int inc = 1;
     while(1)
     {
         sleep_us(200); // 5kHz update rate for ADSR envelope
         adsr_update(&env);
         adsr_pwm_update((uint16_t)(env.value * 1023.0f));
-        
+
+        float t = to_ms_since_boot(get_absolute_time()) / 1000.0f;
+
+        gfx_update(&u8g2, t);
+
+        //sleep_ms(16);
+
+        sleep_ms(32); // ~30 FPS max (usually less is fine)
+
+        /*display_draw_hello(&u8g2, inc);
+        sleep_ms(16);
+        inc++;
+        if (inc > 4)
+        {
+            inc = 1;
+        }
+            */
         //tight_loop_contents(); // put the CPU to sleep while waiting for interrupts
     }
-
-
 
 }
 

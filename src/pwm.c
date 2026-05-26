@@ -17,13 +17,15 @@ static uint slice_freq1;
 static uint slice_freq2;
 static uint slice_adsr;
 
-typedef struct {
+typedef struct 
+{
     uint16_t wrap;
     float clkdiv;
     uint16_t cv;
 } note_params_t;
 
-const note_params_t note_table[128] = {
+const note_params_t note_table[128] = 
+{
     {65535, 128.0f, 511}, // MIDI   0 |     8.18 Hz ->    17.88 Hz | 1354.833 cents
     {65535, 128.0f, 511}, // MIDI   1 |     8.66 Hz ->    17.88 Hz | 1254.833 cents
     {65535, 128.0f, 510}, // MIDI   2 |     9.18 Hz ->    17.88 Hz | 1154.833 cents

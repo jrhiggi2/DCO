@@ -49,6 +49,7 @@ add_executable(DCO1
         src/timer.c
         src/adsr.c
         src/display.c
+        src/gfx.c
 )
 
 pico_set_program_name(DCO1 "DCO1")
