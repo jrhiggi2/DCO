@@ -60,17 +60,48 @@ pico_generate_pio_header(DCO1 ${CMAKE_CURRENT_LIST_DIR}/osc_reset.pio)
 pico_enable_stdio_uart(DCO1 0)
 pico_enable_stdio_usb(DCO1 1)
 
-# Add the standard library to the build
+# Add u8g2 library from the lib folder
+#add_subdirectory(lib)
+
+# add condensed u8g2 library
+add_library(u8g2 STATIC
+    lib/u8g2/csrc/u8g2_d_setup.c
+    lib/u8g2/csrc/u8g2_d_memory.c
+    lib/u8g2/csrc/u8g2_fonts.c
+    lib/u8g2/csrc/u8g2_font.c
+    lib/u8g2/csrc/u8g2_intersection.c
+    lib/u8g2/csrc/u8g2_setup.c
+    lib/u8g2/csrc/u8g2_buffer.c
+    lib/u8g2/csrc/u8g2_ll_hvline.c
+    lib/u8g2/csrc/u8g2_hvline.c
+    lib/u8g2/csrc/u8x8_byte.c
+    lib/u8g2/csrc/u8x8_cad.c
+    lib/u8g2/csrc/u8x8_display.c
+    lib/u8g2/csrc/u8x8_setup.c
+    lib/u8g2/csrc/u8x8_message.c
+    lib/u8g2/csrc/u8x8_gpio.c
+    lib/u8g2/csrc/u8x8_8x8.c
+    lib/u8g2/csrc/u8x8_string.c
+    lib/u8g2/csrc/u8x8_u8toa.c
+    lib/u8g2/csrc/u8x8_u16toa.c
+    lib/u8g2/csrc/u8x8_d_ssd1306_128x64_noname.c
+    lib/u8g2/csrc/u8g2_line.c
+    lib/u8g2/csrc/u8g2_box.c
+    lib/u8g2/csrc/u8g2_circle.c
+    lib/u8g2/csrc/u8g2_bitmap.c
+)
+
+# find .h files associated with u8g2 library .c files
+target_include_directories(u8g2 PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/u8g2/csrc
+)
+
+# u8g2 library is dependent on pico_stdlib so it must be linked
+target_link_libraries(u8g2 PUBLIC pico_stdlib)
+
+# Target libraries
 target_link_libraries(DCO1
         pico_stdlib
-        )
-
-# Add u8g2 library from the lib folder
-add_subdirectory(lib)
-
-# Add any user requested libraries
-target_link_libraries(DCO1 
-        u8g2
         hardware_dma
         hardware_pio
         hardware_adc
@@ -79,14 +110,13 @@ target_link_libraries(DCO1
         hardware_timer
         hardware_i2c
         hardware_gpio
+        u8g2
         )
 
-# Add the standard include files to the build
+# Add the include files to the build
 target_include_directories(DCO1 PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}
 )
-
-
 
 pico_add_extra_outputs(DCO1)
 
