@@ -20,7 +20,6 @@ add_library(u8g2 STATIC
     u8g2/csrc/u8x8_u8toa.c
     u8g2/csrc/u8x8_u16toa.c
     u8g2/csrc/u8x8_d_ssd1306_128x64_noname.c
-    u8g2_hal.c
     u8g2/csrc/u8g2_line.c
     u8g2/csrc/u8g2_box.c
     u8g2/csrc/u8g2_circle.c
@@ -31,8 +30,7 @@ target_include_directories(u8g2 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/u8g2/csrc
 )
 
+
 target_link_libraries(u8g2 PUBLIC
     pico_stdlib
-    hardware_i2c
-    hardware_gpio
 )

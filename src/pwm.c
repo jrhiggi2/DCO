@@ -24,6 +24,7 @@ typedef struct
     uint16_t cv;
 } note_params_t;
 
+// todo: can remove wrap and clkdiv now since PIO controls frequency output now and is glitchless compared to PWM
 const note_params_t note_table[128] = 
 {
     {65535, 128.0f, 511}, // MIDI   0 |     8.18 Hz ->    17.88 Hz | 1354.833 cents
@@ -209,8 +210,8 @@ void DCO1_pwm_init()
 
     // Allocate PWM slices
     slice_cv = pwm_gpio_to_slice_num(0);
-    slice_freq1 = pwm_gpio_to_slice_num(2); 
-    slice_freq2 = pwm_gpio_to_slice_num(6); 
+    // slice_freq1 = pwm_gpio_to_slice_num(2); 
+    // slice_freq2 = pwm_gpio_to_slice_num(6); 
     slice_adsr = pwm_gpio_to_slice_num(8);
 
     // DCO CV default config
@@ -244,7 +245,7 @@ void DCO1_pwm_init()
     //pwm_set_enabled(slice_freq2, true);
 
     //pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2) | (1 << slice_adsr)); // enable all channels on slice 0, 1, and 3
-    pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_adsr)); // enable all channels on slice 0, 1, and 3
+    pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_adsr)); // enable all channels on slice 0 and 3
     // could also have done pwm_set_mask_enabled((1 << slice_cv) | (1 << slice_freq1) | (1 << slice_freq2)); to only enable those slices
     // this saying bitshift 1 << 1 or 1 << 2 or 1 << 3. Which gives b0001 | b0010 | b0100  = 0b0111
     /// \end::setup_pwm[]

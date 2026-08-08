@@ -33,9 +33,6 @@ project(DCO1 C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# Add u8g2 library from the lib folder
-add_subdirectory(lib)
-
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(DCO1 
@@ -50,6 +47,7 @@ add_executable(DCO1
         src/adsr.c
         src/display.c
         src/gfx.c
+        src/u8g2_hal.c
 )
 
 pico_set_program_name(DCO1 "DCO1")
@@ -67,13 +65,12 @@ target_link_libraries(DCO1
         pico_stdlib
         )
 
-# Add the standard include files to the build
-target_include_directories(DCO1 PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
-)
+# Add u8g2 library from the lib folder
+add_subdirectory(lib)
 
 # Add any user requested libraries
 target_link_libraries(DCO1 
+        u8g2
         hardware_dma
         hardware_pio
         hardware_adc
@@ -81,8 +78,15 @@ target_link_libraries(DCO1
         hardware_uart
         hardware_timer
         hardware_i2c
-        u8g2
+        hardware_gpio
         )
+
+# Add the standard include files to the build
+target_include_directories(DCO1 PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}
+)
+
+
 
 pico_add_extra_outputs(DCO1)
 

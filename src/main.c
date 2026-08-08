@@ -37,7 +37,7 @@ void midi_update(midiEvent midi)
         pio_osc_reset_set_note(pio0, 0, midi.data1); // set oscillator reset frequency based on MIDI note value
         pio_osc_reset_set_note(pio0, 1, midi.data1); // set oscillator reset frequency based on MIDI note value
 
-        //pwm_update(midi.data1); // Update PWM duty cycle based on note value and velocity
+        pwm_update(midi.data1); // Update PWM duty cycle based on note value and velocity
         
         // trigger ADSR -- eventually implement legato
         // pass midi.data2 into adsr note on eventually when handling velocity
